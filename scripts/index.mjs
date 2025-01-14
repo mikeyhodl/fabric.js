@@ -27,41 +27,13 @@ import os from 'os';
 import { build } from './build.mjs';
 import { awaitBuild } from './buildLock.mjs';
 import { CLI_CACHE, wd } from './dirname.mjs';
-import { listFiles, transform as transformFiles } from './transform_files.mjs';
 
-const program = new commander.Command();
+const program = new commander.Command()
+  .showHelpAfterError()
+  .allowUnknownOption(false)
+  .allowExcessArguments(false);
 
 const websiteDir = path.resolve(wd, '../fabricjs.com');
-
-function execGitCommand(cmd) {
-  return cp
-    .execSync(cmd, { cwd: wd })
-    .toString()
-    .replace(/\n/g, ',')
-    .split(',')
-    .map((value) => value.trim())
-    .filter((value) => value.length > 0);
-}
-
-function getGitInfo(branchRef) {
-  const branch = execGitCommand('git branch --show-current')[0];
-  const tag = execGitCommand('git describe --tags')[0];
-  const uncommittedChanges = execGitCommand('git status --porcelain').map(
-    (value) => {
-      const [type, path] = value.split(' ');
-      return { type, path };
-    }
-  );
-  const changes = execGitCommand(`git diff ${branchRef} --name-only`);
-  const userName = execGitCommand('git config user.name')[0];
-  return {
-    branch,
-    tag,
-    uncommittedChanges,
-    changes,
-    user: userName,
-  };
-}
 
 class ICheckbox extends Checkbox {
   constructor(questions, rl, answers) {
@@ -114,8 +86,8 @@ function startWebsite() {
   if (os.platform() === 'win32') {
     console.log(
       chalk.green(
-        'Consider using ubuntu on WSL to run jekyll with the following options:'
-      )
+        'Consider using ubuntu on WSL to run jekyll with the following options:',
+      ),
     );
     console.log(chalk.yellow('-- force_polling --livereload'));
     console.log(chalk.gray('https://github.com/microsoft/WSL/issues/216'));
@@ -141,8 +113,8 @@ function watch(path, callback, debounce = 500) {
         }
       },
       debounce,
-      { trailing: true }
-    )
+      { trailing: true },
+    ),
   );
 }
 
@@ -153,15 +125,15 @@ function copy(from, to) {
     console.log(
       `copied ${path.relative(containingFolder, from)} to ${path.relative(
         containingFolder,
-        to
-      )}`
+        to,
+      )}`,
     );
   } catch (error) {
     console.error(error);
   }
 }
 
-const BUILD_SOURCE = ['src', 'lib', 'HEADER.js'];
+const BUILD_SOURCE = ['src', 'lib'];
 
 function exportBuildToWebsite(options = {}) {
   _.defaultsDeep(options, { gestures: true });
@@ -183,13 +155,13 @@ function exportBuildToWebsite(options = {}) {
 function exportAssetsToWebsite(options) {
   copy(
     path.resolve(wd, './package.json'),
-    path.resolve(websiteDir, './lib/package.json')
+    path.resolve(websiteDir, './lib/package.json'),
   );
   BUILD_SOURCE.forEach((p) =>
-    copy(path.resolve(wd, p), path.resolve(websiteDir, './build/files', p))
+    copy(path.resolve(wd, p), path.resolve(websiteDir, './build/files', p)),
   );
   console.log(
-    chalk.bold(`[${moment().format('HH:mm')}] exported assets to fabricjs.com`)
+    chalk.bold(`[${moment().format('HH:mm')}] exported assets to fabricjs.com`),
   );
   options.watch &&
     BUILD_SOURCE.forEach((p) => {
@@ -197,8 +169,8 @@ function exportAssetsToWebsite(options) {
         copy(path.resolve(wd, p), path.resolve(websiteDir, './build/files', p));
         console.log(
           chalk.bold(
-            `[${moment().format('HH:mm')}] exported ${p} to fabricjs.com`
-          )
+            `[${moment().format('HH:mm')}] exported ${p} to fabricjs.com`,
+          ),
         );
       });
     });
@@ -213,10 +185,12 @@ function exportTestsToWebsite(options) {
       './test/lib',
     ];
     paths.forEach((location) =>
-      copy(path.resolve(wd, location), path.resolve(websiteDir, location))
+      copy(path.resolve(wd, location), path.resolve(websiteDir, location)),
     );
     console.log(
-      chalk.bold(`[${moment().format('HH:mm')}] exported tests to fabricjs.com`)
+      chalk.bold(
+        `[${moment().format('HH:mm')}] exported tests to fabricjs.com`,
+      ),
     );
   };
   exportTests();
@@ -256,13 +230,14 @@ async function runTestem({
 
   if (launch) {
     // open localhost
+    // consider using open instead https://github.com/sindresorhus/open
     const url = `http://localhost:${port}/`;
     const start =
       os.platform() === 'darwin'
         ? 'open'
         : os.platform() === 'win32'
-        ? 'start'
-        : 'xdg-open';
+          ? 'start'
+          : 'xdg-open';
     cp.exec([start, url].join(' '));
   }
 
@@ -284,7 +259,7 @@ async function runTestem({
     try {
       cp.execSync(
         ['testem', 'ci', ...processCmdOptions].join(' '),
-        processOptions
+        processOptions,
       );
     } catch (error) {
       return true;
@@ -360,7 +335,7 @@ async function test(suite, tests, options = {}) {
 
 /**
  *
- * @param {'unit'|'visual'} type correspondes to the test directories
+ * @param {'unit'|'visual'} type corresponds to the test directories
  * @returns
  */
 function listTestFiles(type) {
@@ -389,49 +364,13 @@ function createChoiceData(type, file) {
   };
 }
 
-async function selectFileToTransform() {
-  const files = _.map(listFiles(), ({ dir, file }) =>
-    createChoiceData(
-      path.relative(path.resolve(wd, 'src'), dir).replaceAll('\\', '/'),
-      file
-    )
-  );
-  const { tests: filteredTests } = await inquirer.prompt([
-    {
-      type: 'test-selection',
-      name: 'tests',
-      message: 'Select files to transform to es6',
-      highlight: true,
-      searchable: true,
-      default: [],
-      pageSize: 10,
-      source(answersSoFar, input = '') {
-        return new Promise((resolve) => {
-          const value = _.map(this.getCurrentValue(), (value) =>
-            createChoiceData(value.type, value.file)
-          );
-          const res = fuzzy
-            .filter(input, files, {
-              extract: (item) => item.name,
-            })
-            .map((element) => element.original);
-          resolve(value.concat(_.differenceBy(res, value, 'name')));
-        });
-      },
-    },
-  ]);
-  return filteredTests.map(({ type, file }) =>
-    path.resolve(wd, 'src', type, file)
-  );
-}
-
 async function selectTestFile() {
   const selected = readCLIFile();
   const unitTests = listTestFiles('unit').map((file) =>
-    createChoiceData('unit', file)
+    createChoiceData('unit', file),
   );
   const visualTests = listTestFiles('visual').map((file) =>
-    createChoiceData('visual', file)
+    createChoiceData('visual', file),
   );
   const { tests: filteredTests } = await inquirer.prompt([
     {
@@ -446,19 +385,19 @@ async function selectTestFile() {
         return new Promise((resolve) => {
           const tests = _.concat(unitTests, visualTests);
           const value = _.map(this.getCurrentValue(), (value) =>
-            createChoiceData(value.type, value.file)
+            createChoiceData(value.type, value.file),
           );
           if (value.length > 0) {
             if (
               value.find(
-                (v) => v.value && v.value.type === 'unit' && !v.value.file
+                (v) => v.value && v.value.type === 'unit' && !v.value.file,
               )
             ) {
               _.pullAll(tests, unitTests);
             }
             if (
               value.find(
-                (v) => v.value && v.value.type === 'visual' && !v.value.file
+                (v) => v.value && v.value.type === 'visual' && !v.value.file,
               )
             ) {
               _.pullAll(tests, visualTests);
@@ -488,7 +427,7 @@ async function selectTestFile() {
   return filteredTests;
 }
 
-async function runIntreactiveTestSuite(options) {
+async function runInteractiveTestSuite(options) {
   //  some tests fail because of some pollution when run from the same context
   // test(_.map(await selectTestFile(), curr => `test/${curr.type}/${curr.file}`))
   const tests = _.reduce(
@@ -501,7 +440,7 @@ async function runIntreactiveTestSuite(options) {
       }
       return acc;
     },
-    { unit: [], visual: [] }
+    { unit: [], visual: [] },
   );
   return Promise.all(
     _.map(tests, (files, suite) => {
@@ -510,7 +449,7 @@ async function runIntreactiveTestSuite(options) {
       } else if (Array.isArray(files) && files.length > 0) {
         return test(suite, files, options);
       }
-    })
+    }),
   );
 }
 
@@ -519,16 +458,6 @@ program
   .description('fabric.js DEV CLI tools')
   .version(process.env.npm_package_version)
   .showSuggestionAfterError();
-
-program
-  .command('start')
-  .description('start fabricjs.com dev server and watch for changes')
-  .action((options) => {
-    exportToWebsite({
-      watch: true,
-    });
-    startWebsite();
-  });
 
 program
   .command('dev')
@@ -557,8 +486,8 @@ program
   .description('run test suite')
   .addOption(
     new commander.Option('-s, --suite <suite...>', 'test suite to run').choices(
-      ['unit', 'visual']
-    )
+      ['unit', 'visual'],
+    ),
   )
   .option('-f, --file <file>', 'run a specific test file')
   .option('--filter <filter>', 'filter tests by name')
@@ -566,7 +495,7 @@ program
   .option(
     '-d, --debug',
     'debug visual tests by overriding refs (golden images) in case of visual changes',
-    false
+    false,
   )
   .option('-r, --recreate', 'recreate visual refs (golden images)', false)
   .option('-v, --verbose', 'log passing tests', true)
@@ -576,7 +505,7 @@ program
   .addOption(
     new commander.Option('-c, --context <context...>', 'context to test in')
       .choices(['node', 'chrome', 'firefox'])
-      .default(['node'])
+      .default(['node']),
   )
   .option('-p, --port')
   .option('-o, --out <out>', 'path to report test results to')
@@ -594,19 +523,19 @@ program
         ...(await Promise.all(
           _.map(options.suite, (suite) => {
             return test(suite, null, options);
-          })
-        ))
+          }),
+        )),
       );
     } else if (options.file) {
       results.push(
         await test(
           options.file.startsWith('visual') ? 'visual' : 'unit',
           [`test/${options.file}`],
-          options
-        )
+          options,
+        ),
       );
     } else {
-      results.push(...(await runIntreactiveTestSuite(options)));
+      results.push(...(await runInteractiveTestSuite(options)));
     }
     if (_.some(results)) {
       // inform ci that tests have failed
@@ -629,51 +558,9 @@ website
   .addOption(
     new commander.Option('-i, --include <what...>')
       .choices(['build', 'tests'])
-      .default(['build', 'tests'], 'export all')
+      .default(['build', 'tests'], 'export all'),
   )
   .option('-w, --watch')
   .action(exportToWebsite);
-
-program
-  .command('transform')
-  .description('transforms files into es6')
-  .option('-o, --overwrite', 'overwrite exisitng files', false)
-  .option('-x, --no-exports', 'do not use exports')
-  .option('-i, --index', 'create index files', false)
-  .option('-ts, --typescript', 'transform into typescript', false)
-  .option('-v, --verbose', 'verbose logging', true)
-  .option('-a, --all', 'transform all files', false)
-  .option(
-    '-d, --diff <branch>',
-    'compare against given branch (default: master) and transform all files with diff'
-  )
-  .action(
-    async ({
-      overwrite,
-      exports,
-      index,
-      typescript,
-      verbose,
-      all,
-      diff: gitRef,
-    } = {}) => {
-      let files = [];
-      if (gitRef) {
-        gitRef = gitRef === true ? 'master' : gitRef;
-        const { changes } = getGitInfo(gitRef);
-        files = changes.map((change) => path.resolve(wd, change));
-      } else if (!all) {
-        files = await selectFileToTransform();
-      }
-      transformFiles({
-        overwriteExisitingFiles: overwrite,
-        useExports: exports,
-        createIndex: index,
-        ext: typescript ? 'ts' : 'js',
-        verbose,
-        files,
-      });
-    }
-  );
 
 program.parse(process.argv);

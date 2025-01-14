@@ -1,12 +1,12 @@
-import type { FabricObject } from '../shapes/fabricObject.class';
-import {
+import type {
   ControlCursorCallback,
-  TAxis,
   TPointerEvent,
   Transform,
   TransformActionHandler,
-} from '../typedefs';
-import { Canvas } from '../__types__';
+} from '../EventTypeDefs';
+import type { FabricObject } from '../shapes/Object/FabricObject';
+import type { TAxis } from '../typedefs';
+import type { Canvas } from '../canvas/Canvas';
 import {
   findCornerQuadrant,
   getLocalPoint,
@@ -17,6 +17,7 @@ import {
 } from './util';
 import { wrapWithFireEvent } from './wrapWithFireEvent';
 import { wrapWithFixedAnchor } from './wrapWithFixedAnchor';
+import { SCALE_X, SCALE_Y, SCALING } from '../constants';
 
 type ScaleTransform = Transform & {
   gestureScale?: number;
@@ -34,10 +35,10 @@ type ScaleBy = TAxis | 'equally' | '' | undefined;
  */
 export function scaleIsProportional(
   eventData: TPointerEvent,
-  fabricObject: FabricObject
+  fabricObject: FabricObject,
 ): boolean {
   const canvas = fabricObject.canvas as Canvas,
-    uniformIsToggled = eventData[canvas.uniScaleKey];
+    uniformIsToggled = eventData[canvas.uniScaleKey!];
   return (
     (canvas.uniformScaling && !uniformIsToggled) ||
     (!canvas.uniformScaling && uniformIsToggled)
@@ -54,7 +55,7 @@ export function scaleIsProportional(
 export function scalingIsForbidden(
   fabricObject: FabricObject,
   by: ScaleBy,
-  scaleProportionally: boolean
+  scaleProportionally: boolean,
 ) {
   const lockX = isLocked(fabricObject, 'lockScalingX'),
     lockY = isLocked(fabricObject, 'lockScalingY');
@@ -68,6 +69,15 @@ export function scalingIsForbidden(
     return true;
   }
   if (lockY && by === 'y') {
+    return true;
+  }
+  // code crashes because of a division by 0 if a 0 sized object is scaled
+  // forbid to prevent scaling to happen. ISSUE-9475
+  const { width, height, strokeWidth } = fabricObject;
+  if (width === 0 && strokeWidth === 0 && by !== 'y') {
+    return true;
+  }
+  if (height === 0 && strokeWidth === 0 && by !== 'x') {
     return true;
   }
   return false;
@@ -85,15 +95,15 @@ const scaleMap = ['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne', 'e'];
 export const scaleCursorStyleHandler: ControlCursorCallback = (
   eventData,
   control,
-  fabricObject
+  fabricObject,
 ) => {
   const scaleProportionally = scaleIsProportional(eventData, fabricObject),
     by =
       control.x !== 0 && control.y === 0
         ? 'x'
         : control.x === 0 && control.y !== 0
-        ? 'y'
-        : '';
+          ? 'y'
+          : '';
   if (scalingIsForbidden(fabricObject, by, scaleProportionally)) {
     return NOT_ALLOWED_CURSOR;
   }
@@ -118,7 +128,7 @@ function scaleObject(
   transform: ScaleTransform,
   x: number,
   y: number,
-  options: { by?: ScaleBy } = {}
+  options: { by?: ScaleBy } = {},
 ) {
   const target = transform.target,
     by = options.by,
@@ -138,15 +148,15 @@ function scaleObject(
       transform.originX,
       transform.originY,
       x,
-      y
+      y,
     );
     // use of sign: We use sign to detect change of direction of an action. sign usually change when
     // we cross the origin point with the mouse. So a scale flip for example. There is an issue when scaling
     // by center and scaling using one middle control ( default: mr, mt, ml, mb), the mouse movement can easily
     // cross many time the origin point and flip the object. so we need a way to filter out the noise.
     // This ternary here should be ok to filter out X scaling when we want Y only and vice versa.
-    signX = by !== 'y' ? Math.sign(newPoint.x) : 1;
-    signY = by !== 'x' ? Math.sign(newPoint.y) : 1;
+    signX = by !== 'y' ? Math.sign(newPoint.x || transform.signX || 1) : 1;
+    signY = by !== 'x' ? Math.sign(newPoint.y || transform.signY || 1) : 1;
     if (!transform.signX) {
       transform.signX = signX;
     }
@@ -193,16 +203,16 @@ function scaleObject(
       transform.signY = signY;
     }
   }
-  // minScale is taken are in the setter.
+  // minScale is taken care of in the setter.
   const oldScaleX = target.scaleX,
     oldScaleY = target.scaleY;
   if (!by) {
-    !isLocked(target, 'lockScalingX') && target.set('scaleX', scaleX);
-    !isLocked(target, 'lockScalingY') && target.set('scaleY', scaleY);
+    !isLocked(target, 'lockScalingX') && target.set(SCALE_X, scaleX);
+    !isLocked(target, 'lockScalingY') && target.set(SCALE_Y, scaleY);
   } else {
     // forbidden cases already handled on top here.
-    by === 'x' && target.set('scaleX', scaleX);
-    by === 'y' && target.set('scaleY', scaleY);
+    by === 'x' && target.set(SCALE_X, scaleX);
+    by === 'y' && target.set(SCALE_Y, scaleY);
   }
   return oldScaleX !== target.scaleX || oldScaleY !== target.scaleY;
 }
@@ -220,7 +230,7 @@ export const scaleObjectFromCorner: TransformActionHandler<ScaleTransform> = (
   eventData,
   transform,
   x,
-  y
+  y,
 ) => {
   return scaleObject(eventData, transform, x, y);
 };
@@ -238,7 +248,7 @@ const scaleObjectX: TransformActionHandler<ScaleTransform> = (
   eventData,
   transform,
   x,
-  y
+  y,
 ) => {
   return scaleObject(eventData, transform, x, y, { by: 'x' });
 };
@@ -256,22 +266,22 @@ const scaleObjectY: TransformActionHandler<ScaleTransform> = (
   eventData,
   transform,
   x,
-  y
+  y,
 ) => {
   return scaleObject(eventData, transform, x, y, { by: 'y' });
 };
 
 export const scalingEqually = wrapWithFireEvent(
-  'scaling',
-  wrapWithFixedAnchor(scaleObjectFromCorner)
+  SCALING,
+  wrapWithFixedAnchor(scaleObjectFromCorner),
 );
 
 export const scalingX = wrapWithFireEvent(
-  'scaling',
-  wrapWithFixedAnchor(scaleObjectX)
+  SCALING,
+  wrapWithFixedAnchor(scaleObjectX),
 );
 
 export const scalingY = wrapWithFireEvent(
-  'scaling',
-  wrapWithFixedAnchor(scaleObjectY)
+  SCALING,
+  wrapWithFixedAnchor(scaleObjectY),
 );

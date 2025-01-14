@@ -1,9 +1,16 @@
-import type { WebGLFilterBackend } from './webgl_backend.class';
-import type { Canvas2dFilterBackend } from './2d_backend.class';
+import type { WebGLFilterBackend } from './WebGLFilterBackend';
+import type { Canvas2dFilterBackend } from './Canvas2dFilterBackend';
 
 export type TProgramCache = any;
 
-export type TTextureCache = any;
+export type TTextureCache = Record<string, WebGLTexture>;
+
+export type TPipelineResources = {
+  blendImage?: HTMLCanvasElement;
+  blurLayer1?: HTMLCanvasElement;
+  blurLayer2?: HTMLCanvasElement;
+  sliceByTwo?: HTMLCanvasElement;
+} & Record<string, unknown>;
 
 export type TWebGLPipelineState = {
   filterBackend: WebGLFilterBackend;
@@ -31,7 +38,7 @@ export type T2DPipelineState = {
   filterBackend: Canvas2dFilterBackend;
   canvasEl: HTMLCanvasElement;
   imageData: ImageData;
-  originalEl: HTMLCanvasElement | HTMLImageElement;
+  originalEl: CanvasImageSource;
   originalImageData?: ImageData;
   ctx: CanvasRenderingContext2D;
   helpLayer?: HTMLCanvasElement;
@@ -50,10 +57,25 @@ export type TWebGLProgramCacheItem = {
   uniformLocations: TWebGLUniformLocationMap;
 };
 
-export type TApplyFilterArgs = {};
-
-export const isWebGLPipelineState = (
-  options: TWebGLPipelineState | T2DPipelineState
-): options is TWebGLPipelineState => {
-  return (options as TWebGLPipelineState).webgl !== undefined;
-};
+export type TMatColorMatrix = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+];

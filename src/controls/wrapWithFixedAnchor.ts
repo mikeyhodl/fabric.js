@@ -1,4 +1,4 @@
-import { Transform, TransformActionHandler } from '../typedefs';
+import type { Transform, TransformActionHandler } from '../EventTypeDefs';
 
 /**
  * Wrap an action handler with saving/restoring object position on the transform.
@@ -7,14 +7,20 @@ import { Transform, TransformActionHandler } from '../typedefs';
  * @return {Function} a function with an action handler signature
  */
 export function wrapWithFixedAnchor<T extends Transform>(
-  actionHandler: TransformActionHandler<T>
+  actionHandler: TransformActionHandler<T>,
 ) {
   return ((eventData, transform, x, y) => {
     const { target, originX, originY } = transform,
       centerPoint = target.getRelativeCenterPoint(),
       constraint = target.translateToOriginPoint(centerPoint, originX, originY),
       actionPerformed = actionHandler(eventData, transform, x, y);
-    target.setPositionByOrigin(constraint, originX, originY);
+    // flipping requires to change the transform origin, so we read from the mutated transform
+    // instead of leveraging the one destructured before
+    target.setPositionByOrigin(
+      constraint,
+      transform.originX,
+      transform.originY,
+    );
     return actionPerformed;
   }) as TransformActionHandler<T>;
 }

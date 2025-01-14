@@ -9,12 +9,12 @@ on:
 
 jobs:
   publish-npm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 20.x
           registry-url: https://registry.npmjs.org/
       - run: npm install
       - run: npm run build
@@ -23,18 +23,32 @@ jobs:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
           PRE_RELEASE: ${{github.event.release.prerelease}}
   update-bug-report:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # wait for publishing to complete
     needs: publish-npm
     if: always()
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: master
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - run: npm ci
+      - name: Latest major version for bug report update
+        id: major
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            const fs = require('fs-extra');
+            const semver = require('semver');
+            const { version } = fs.readJsonSync('./package.json');
+            return semver.major(version);
       - name: Update bug report version
         uses: ShaMan123/gha-populate-form-version@v2.0.1
         with:
-          semver: '>=4.0.0 || >=6.0.0-rc'
+          semver: '>=4.0.0 || >=${{ steps.major.outputs.result }}.0.0-rc || >=${{ steps.major.outputs.result }}.0.0-beta'
           dry_run: no-push
       - name: Update bug report node version
         uses: ShaMan123/gha-populate-form-version@v2.0.1

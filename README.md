@@ -5,6 +5,7 @@
 A **simple and powerful Javascript HTML5 canvas library**.
 
 - [**Website**][website]
+- [**Old V5 documentation**](https://fabric5.fabricjs.com)
 - [**GOTCHAS**][gotchas]
 - [**Contributing, Developing and More**](CONTRIBUTING.md)
 
@@ -43,37 +44,31 @@ A **simple and powerful Javascript HTML5 canvas library**.
 - Built in shapes, controls, animations, image filters, gradients, patterns, brushes...
 - `JPG`, `PNG`, `JSON` and `SVG` i/o
 - Typed and modular
-- [Unit tested](CONTRIBUTING.md#%F0%9F%A7%AA%20testing)
+- [Unit tested](CONTRIBUTING.md#-testing)
 
 #### Supported Browsers/Environments
 
 |   Context   | Supported Version | Notes                           |
 | :---------: | :---------------: | ------------------------------- |
-|   Firefox   |        ✔️         | modern version (tbd)            |
-|   Safari    |        ✔️         | version >= 10.1                 |
+|   Firefox   |        ✔️         | 58                              |
+|   Safari    |        ✔️         | 11                              |
 |    Opera    |        ✔️         | chromium based                  |
-|   Chrome    |        ✔️         | modern version (tbd)            |
+|   Chrome    |        ✔️         | 64                              |
 |    Edge     |        ✔️         | chromium based                  |
 | Edge Legacy |        ❌         |
 |    IE11     |        ❌         |
 |   Node.js   |        ✔️         | [Node.js installation](#nodejs) |
 
-Fabric.js Does not use transpilation by default, the browser version we support is determined by the level of canvas api we want to use and some js syntax. While JS can be easily transpiled, canvas API can't.
+Fabric.js does not use polyfills by default, or tries to keep it at minimum. the browser version we support is determined by the level of canvas api we want to use and some js syntax. While JS can be easily transpiled, canvas API can't.
 
 ## Installation
 
 ```bash
 $ npm install fabric --save
-// or
+# or use yarn
 $ yarn add fabric
-```
-
-```js
-// es6 imports
-import { fabric } from 'fabric';
-
-//  or cjs
-const fabric = require('fabric').fabric;
+# or use pnpm
+$ pnpm install fabric
 ```
 
 #### Browser
@@ -92,12 +87,21 @@ Follow these [instructions][node_canvas_install] to get `node-canvas` up and run
 
 ## Quick Start
 
+```js
+// v6
+import { Canvas, Rect } from 'fabric'; // browser
+import { StaticCanvas, Rect } from 'fabric/node'; // node
+
+// v5
+import { fabric } from 'fabric';
+```
+
 <details><summary><b>Plain HTML</b></summary>
 
 ```html
 <canvas id="canvas" width="300" height="300"></canvas>
 
-<script src="https://cdn.jsdelivr.net/npm/fabric"></script>
+<script src="https://cdn.jsdelivr.net/npm/fabric@6.4.3/dist/index.js"></script>
 <script>
   const canvas = new fabric.Canvas('canvas');
   const rect = new fabric.Rect({
@@ -113,14 +117,15 @@ Follow these [instructions][node_canvas_install] to get `node-canvas` up and run
 
 </details>
 
-<details><summary><b>ReactJS</b></summary>
+<details><summary><b>React.js</b></summary>
 
 ```tsx
 import React, { useEffect, useRef } from 'react';
-import { fabric } from 'fabric';
+import * as fabric from 'fabric'; // v6
+import { fabric } from 'fabric'; // v5
 
 export const FabricJSCanvas = () => {
-  const canvasEl = useRef(null);
+  const canvasEl = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const options = { ... };
     const canvas = new fabric.Canvas(canvasEl.current, options);
@@ -132,8 +137,8 @@ export const FabricJSCanvas = () => {
     }
   }, []);
 
-  return (<canvas width="300" height="300" ref={canvasEl}/>)
-});
+  return <canvas width="300" height="300" ref={canvasEl}/>;
+};
 
 ```
 
@@ -142,8 +147,9 @@ export const FabricJSCanvas = () => {
 <details><summary><b>Node.js</b></summary>
 
 ```js
-const http = require('http');
-const { fabric } = require('fabric');
+import http from 'http';
+import * as fabric from 'fabric/node'; // v6
+import { fabric } from 'fabric'; // v5
 
 const port = 8080;
 
@@ -170,27 +176,29 @@ http
   .listen(port, (err) => {
     if (err) throw err;
     console.log(
-      `> Ready on http://localhost:${port}, http://localhost:${port}/view, http://localhost:${port}/download`
+      `> Ready on http://localhost:${port}, http://localhost:${port}/view, http://localhost:${port}/download`,
     );
   });
 ```
 
 </details>
 
+See our ready to use [templates](./.codesandbox/templates/).
+
 ---
 
 ## Other Solutions
 
-| Project                        | Description          | Demo |
-| ------------------------------ | -------------------- | :--: |
+| Project                        | Description          |
+| ------------------------------ | -------------------- |
 | [Three.js][three.js]           | 3D graphics          |
 | [PixiJS][pixijs]               | WebGL renderer       |
-| [Konva][konva]                 | Similar features     |  ❌  |
-| [Canvas2PDF][canvas2pdf]       | PDF renderer         |
+| [Konva][konva]                 | Similar features     |
 | [html-to-image][html-to-image] | HTML to image/canvas |
 
 ## More Resources
 
+- [WIP new fabricjs.com](https://fabricjs.github.io)
 - [Demos on `fabricjs.com`][demos]
 - [Fabric.js on `Twitter`][twitter]
 - [Fabric.js on `CodeTriage`][code_triage]
@@ -203,8 +211,8 @@ http
 - [kangax][kagnax]
 - [asturur][asturur] on [`Twitter`][asturur_twitter]
   [![Sponsor asturur](https://img.shields.io/static/v1?label=Sponsor%20asturur&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/asturur)
-- [melchiar][melchiar] [![Sponsor melchiar](https://img.shields.io/static/v1?label=Sponsor%20melchiar&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/melchiar)
 - [ShaMan123][shaman123] [![Sponsor ShaMan123](https://img.shields.io/static/v1?label=Sponsor%20ShaMan123&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/ShaMan123)
+- [melchiar][melchiar] [![Sponsor melchiar](https://img.shields.io/static/v1?label=Sponsor%20melchiar&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/melchiar)
 - Ernest Delgado for the original idea of [manipulating images on canvas](http://www.ernestdelgado.com/archive/canvas/)
 - [Maxim "hakunin" Chernyak](http://twitter.com/hakunin) for ideas, and help with various parts of the library throughout its life
 - [Sergey Nisnevich](http://nisnya.com) for help with geometry logic
@@ -214,13 +222,12 @@ http
 
 [asturur]: https://github.com/asturur
 [asturur_twitter]: https://twitter.com/AndreaBogazzi
-[canvas2pdf]: https://github.com/joshua-gould/canvas2pdf
 [cdnjs]: https://cdnjs.com/libraries/fabric.js
 [code_triage]: https://www.codetriage.com/kangax/fabric.js
 [codepens]: https://codepen.io/tag/fabricjs
 [contributors]: https://github.com/fabricjs/fabric.js/graphs/contributors
 [demos]: http://fabricjs.com/demos/
-[gotchas]: http://fabricjs.com/fabric-gotchas
+[gotchas]: https://fabricjs.com/docs/old-docs/gotchas/
 [html-to-image]: https://github.com/bubkoo/html-to-image
 [jsdelivr]: https://www.jsdelivr.com/package/npm/fabric
 [jsdom]: https://github.com/jsdom/jsdom

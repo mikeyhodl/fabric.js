@@ -1,18 +1,9 @@
-//@ts-nocheck
 import { getSvgRegex } from './getSvgRegex';
+import { LEFT, TOP } from '../constants';
 
-export const cssRules = {};
-export const gradientDefs = {};
-export const clipPaths = {};
-
-export const reNum = '(?:[-+]?(?:\\d+|\\d*\\.\\d+)(?:[eE][-+]?\\d+)?)';
+export const reNum = String.raw`(?:[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?)`;
 
 export const svgNS = 'http://www.w3.org/2000/svg';
-
-export const commaWsp = '(?:\\s+,?\\s*|,\\s*)';
-
-export const rePathCommand =
-  /([-+]?((\d+\.\d+)|((\d+)|(\.\d+)))(?:[eE][-+]?\d+)?)/gi;
 
 export const reFontDeclaration = new RegExp(
   '(normal|italic)?\\s*(normal|small-caps)?\\s*' +
@@ -20,7 +11,7 @@ export const reFontDeclaration = new RegExp(
     reNum +
     '(?:px|cm|mm|em|pt|pc|in)*)(?:\\/(normal|' +
     reNum +
-    '))?\\s+(.*)'
+    '))?\\s+(.*)',
 );
 
 export const svgValidTagNames = [
@@ -46,11 +37,11 @@ export const svgValidTagNames = [
   ],
   svgValidParents = ['symbol', 'g', 'a', 'svg', 'clipPath', 'defs'],
   attributesMap = {
-    cx: 'left',
-    x: 'left',
+    cx: LEFT,
+    x: LEFT,
     r: 'radius',
-    cy: 'top',
-    y: 'top',
+    cy: TOP,
+    y: TOP,
     display: 'visible',
     visibility: 'visible',
     transform: 'transformMatrix',
@@ -77,18 +68,12 @@ export const svgValidTagNames = [
     'vector-effect': 'strokeUniform',
     'image-rendering': 'imageSmoothing',
   },
-  colorAttributes = {
-    stroke: 'strokeOpacity',
-    fill: 'fillOpacity',
-  },
   fSize = 'font-size',
   cPath = 'clip-path';
 
 export const svgValidTagNamesRegEx = getSvgRegex(svgValidTagNames);
 
 export const svgViewBoxElementsRegEx = getSvgRegex(svgViewBoxElements);
-
-export const svgInvalidAncestorsRegEx = getSvgRegex(svgInvalidAncestors);
 
 export const svgValidParentsRegEx = getSvgRegex(svgValidParents);
 
@@ -108,5 +93,5 @@ export const reViewBoxAttrValue = new RegExp(
     '\\s*(' +
     reNum +
     '+)\\s*' +
-    '$'
+    '$',
 );

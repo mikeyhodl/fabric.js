@@ -1,79 +1,91 @@
-//@ts-nocheck
 import { svgNS } from './constants';
-import { elementById } from './elementById';
 import { getMultipleNodes } from './getMultipleNodes';
 import { applyViewboxTransform } from './applyViewboxTransform';
+import { parseStyleString } from './parseStyleString';
 
-export function parseUseDirectives(doc) {
-  let nodelist = getMultipleNodes(doc, ['use', 'svg:use']),
-    i = 0;
-  while (nodelist.length && i < nodelist.length) {
-    const el = nodelist[i],
-      xlinkAttribute = el.getAttribute('xlink:href') || el.getAttribute('href');
+export function parseUseDirectives(doc: Document) {
+  const nodelist = getMultipleNodes(doc, ['use', 'svg:use']);
+  const skipAttributes = ['x', 'y', 'xlink:href', 'href', 'transform'];
 
-    if (xlinkAttribute === null) {
+  for (const useElement of nodelist) {
+    const useAttributes: NamedNodeMap = useElement.attributes;
+
+    const useAttrMap: Record<string, string> = {};
+    for (const attr of useAttributes) {
+      attr.value && (useAttrMap[attr.name] = attr.value);
+    }
+
+    const xlink = (useAttrMap['xlink:href'] || useAttrMap.href || '').slice(1);
+
+    if (xlink === '') {
       return;
     }
+    const referencedElement = doc.getElementById(xlink);
+    if (referencedElement === null) {
+      // if we can't find the target of the xlink, consider this use tag bad, similar to no xlink
+      return;
+    }
+    let clonedOriginal = referencedElement.cloneNode(true) as Element;
 
-    var xlink = xlinkAttribute.slice(1),
-      x = el.getAttribute('x') || 0,
-      y = el.getAttribute('y') || 0,
-      el2 = elementById(doc, xlink).cloneNode(true),
-      currentTrans =
-        (el2.getAttribute('transform') || '') +
-        ' translate(' +
-        x +
-        ', ' +
-        y +
-        ')',
-      parentNode,
-      oldLength = nodelist.length,
-      attr,
-      j,
-      attrs,
-      len,
-      namespace = svgNS;
+    const originalAttributes: NamedNodeMap = clonedOriginal.attributes;
 
-    applyViewboxTransform(el2);
-    if (/^svg$/i.test(el2.nodeName)) {
-      const el3 = el2.ownerDocument.createElementNS(namespace, 'g');
-      for (j = 0, attrs = el2.attributes, len = attrs.length; j < len; j++) {
-        attr = attrs.item(j);
-        el3.setAttributeNS(namespace, attr.nodeName, attr.nodeValue);
-      }
-      // el2.firstChild != null
-      while (el2.firstChild) {
-        el3.appendChild(el2.firstChild);
-      }
-      el2 = el3;
+    const originalAttrMap: Record<string, string> = {};
+    for (const attr of originalAttributes) {
+      attr.value && (originalAttrMap[attr.name] = attr.value);
     }
 
-    for (j = 0, attrs = el.attributes, len = attrs.length; j < len; j++) {
-      attr = attrs.item(j);
-      if (
-        attr.nodeName === 'x' ||
-        attr.nodeName === 'y' ||
-        attr.nodeName === 'xlink:href' ||
-        attr.nodeName === 'href'
-      ) {
+    // Transform attribute needs to be merged in a particular way
+    const { x = 0, y = 0, transform = '' } = useAttrMap;
+    const currentTrans = `${transform} ${
+      originalAttrMap.transform || ''
+    } translate(${x}, ${y})`;
+
+    applyViewboxTransform(clonedOriginal);
+
+    if (/^svg$/i.test(clonedOriginal.nodeName)) {
+      // if is an SVG, create a group and apply all the attributes on top of it
+      const el3 = clonedOriginal.ownerDocument.createElementNS(svgNS, 'g');
+      Object.entries(originalAttrMap).forEach(([name, value]) =>
+        el3.setAttributeNS(svgNS, name, value),
+      );
+      el3.append(...clonedOriginal.childNodes);
+      clonedOriginal = el3;
+    }
+
+    for (const attr of useAttributes) {
+      if (!attr) {
+        continue;
+      }
+      const { name, value } = attr;
+      if (skipAttributes.includes(name)) {
         continue;
       }
 
-      if (attr.nodeName === 'transform') {
-        currentTrans = attr.nodeValue + ' ' + currentTrans;
+      if (name === 'style') {
+        // when use has a style, merge the two styles, with the ref being priority (not use)
+        // priority is by feature. an attribute for fill on the original element
+        // will overwrite the fill in style or attribute for tha use
+        const styleRecord: Record<string, any> = {};
+        parseStyleString(value!, styleRecord);
+        // cleanup styleRecord from attributes of original
+        Object.entries(originalAttrMap).forEach(([name, value]) => {
+          styleRecord[name] = value;
+        });
+        // now we can put in the style of the original that will overwrite the original attributes
+        parseStyleString(originalAttrMap.style || '', styleRecord);
+        const mergedStyles = Object.entries(styleRecord)
+          .map((entry) => entry.join(':'))
+          .join(';');
+        clonedOriginal.setAttribute(name, mergedStyles);
       } else {
-        el2.setAttribute(attr.nodeName, attr.nodeValue);
+        // set the attribute from use element only if the original does not have it already
+        !originalAttrMap[name] && clonedOriginal.setAttribute(name, value!);
       }
     }
 
-    el2.setAttribute('transform', currentTrans);
-    el2.setAttribute('instantiated_by_use', '1');
-    el2.removeAttribute('id');
-    parentNode = el.parentNode;
-    parentNode.replaceChild(el2, el);
-    // some browsers do not shorten nodelist after replaceChild (IE8)
-    if (nodelist.length === oldLength) {
-      i++;
-    }
+    clonedOriginal.setAttribute('transform', currentTrans);
+    clonedOriginal.setAttribute('instantiated_by_use', '1');
+    clonedOriginal.removeAttribute('id');
+    useElement.parentNode!.replaceChild(clonedOriginal, useElement);
   }
 }

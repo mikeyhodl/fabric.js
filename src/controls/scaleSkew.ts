@@ -1,17 +1,17 @@
-import type { FabricObject } from '../shapes/object.class';
-import {
+import type {
   ControlCallback,
   ControlCursorCallback,
-  TAxisKey,
   TPointerEvent,
   TransformActionHandler,
-} from '../typedefs';
-import { Canvas } from '../__types__';
+} from '../EventTypeDefs';
+import { SCALE_X, SCALE_Y, SKEW_X, SKEW_Y } from '../constants';
+import type { FabricObject } from '../shapes/Object/FabricObject';
+import type { TAxisKey } from '../typedefs';
 import { scaleCursorStyleHandler, scalingX, scalingY } from './scale';
 import { skewCursorStyleHandler, skewHandlerX, skewHandlerY } from './skew';
 
 function isAltAction(eventData: TPointerEvent, target: FabricObject) {
-  return eventData[(target.canvas as Canvas)?.altActionKey];
+  return eventData[target.canvas!.altActionKey!];
 }
 
 /**
@@ -22,17 +22,18 @@ function isAltAction(eventData: TPointerEvent, target: FabricObject) {
  * @return {String} an action name
  */
 export const scaleOrSkewActionName: ControlCallback<
-  TAxisKey<'skew' | 'scale'> | undefined
+  TAxisKey<'skew' | 'scale'> | ''
 > = (eventData, control, fabricObject) => {
   const isAlternative = isAltAction(eventData, fabricObject);
   if (control.x === 0) {
     // then is scaleY or skewX
-    return isAlternative ? 'skewX' : 'scaleY';
+    return isAlternative ? SKEW_X : SCALE_Y;
   }
   if (control.y === 0) {
     // then is scaleY or skewX
-    return isAlternative ? 'skewY' : 'scaleX';
+    return isAlternative ? SKEW_Y : SCALE_X;
   }
+  return '';
 };
 
 /**
@@ -45,7 +46,7 @@ export const scaleOrSkewActionName: ControlCallback<
 export const scaleSkewCursorStyleHandler: ControlCursorCallback = (
   eventData,
   control,
-  fabricObject
+  fabricObject,
 ) => {
   return isAltAction(eventData, fabricObject)
     ? skewCursorStyleHandler(eventData, control, fabricObject)
@@ -64,7 +65,7 @@ export const scalingXOrSkewingY: TransformActionHandler = (
   eventData,
   transform,
   x,
-  y
+  y,
 ) => {
   return isAltAction(eventData, transform.target)
     ? skewHandlerY(eventData, transform, x, y)
@@ -84,7 +85,7 @@ export const scalingYOrSkewingX: TransformActionHandler = (
   eventData,
   transform,
   x,
-  y
+  y,
 ) => {
   return isAltAction(eventData, transform.target)
     ? skewHandlerX(eventData, transform, x, y)

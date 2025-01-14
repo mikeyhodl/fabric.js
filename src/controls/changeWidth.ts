@@ -1,4 +1,6 @@
-import { TransformActionHandler } from '../typedefs';
+import type { TransformActionHandler } from '../EventTypeDefs';
+import { CENTER, LEFT, RESIZING, RIGHT } from '../constants';
+import { resolveOrigin } from '../util/misc/resolveOrigin';
 import { getLocalPoint, isTransformCentered } from './util';
 import { wrapWithFireEvent } from './wrapWithFireEvent';
 import { wrapWithFixedAnchor } from './wrapWithFixedAnchor';
@@ -16,30 +18,31 @@ export const changeObjectWidth: TransformActionHandler = (
   eventData,
   transform,
   x,
-  y
+  y,
 ) => {
   const localPoint = getLocalPoint(
     transform,
     transform.originX,
     transform.originY,
     x,
-    y
+    y,
   );
   //  make sure the control changes width ONLY from it's side of target
   if (
-    transform.originX === 'center' ||
-    (transform.originX === 'right' && localPoint.x < 0) ||
-    (transform.originX === 'left' && localPoint.x > 0)
+    resolveOrigin(transform.originX) === resolveOrigin(CENTER) ||
+    (resolveOrigin(transform.originX) === resolveOrigin(RIGHT) &&
+      localPoint.x < 0) ||
+    (resolveOrigin(transform.originX) === resolveOrigin(LEFT) &&
+      localPoint.x > 0)
   ) {
     const { target } = transform,
       strokePadding =
         target.strokeWidth / (target.strokeUniform ? target.scaleX : 1),
       multiplier = isTransformCentered(transform) ? 2 : 1,
       oldWidth = target.width,
-      newWidth = Math.ceil(
-        Math.abs((localPoint.x * multiplier) / target.scaleX) - strokePadding
-      );
-    target.set('width', Math.max(newWidth, 0));
+      newWidth =
+        Math.abs((localPoint.x * multiplier) / target.scaleX) - strokePadding;
+    target.set('width', Math.max(newWidth, 1));
     //  check against actual target width in case `newWidth` was rejected
     return oldWidth !== target.width;
   }
@@ -47,6 +50,6 @@ export const changeObjectWidth: TransformActionHandler = (
 };
 
 export const changeWidth = wrapWithFireEvent(
-  'resizing',
-  wrapWithFixedAnchor(changeObjectWidth)
+  RESIZING,
+  wrapWithFixedAnchor(changeObjectWidth),
 );
