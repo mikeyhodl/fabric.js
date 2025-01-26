@@ -1,16 +1,27 @@
-import { clone } from '../lang_object';
+import { reNewline } from '../../constants';
+import type {
+  TextStyle,
+  TextStyleDeclaration,
+} from '../../shapes/Text/StyledText';
+import { cloneStyles } from '../internals/cloneStyles';
+import { graphemeSplit } from '../lang_string';
+
+export type TextStyleArray = {
+  start: number;
+  end: number;
+  style: TextStyleDeclaration;
+}[];
 
 /**
- * @memberOf fabric.util
  * @param {Object} prevStyle first style to compare
  * @param {Object} thisStyle second style to compare
  * @param {boolean} forTextSpans whether to check overline, underline, and line-through properties
  * @return {boolean} true if the style changed
  */
 export const hasStyleChanged = (
-  prevStyle: any,
-  thisStyle: any,
-  forTextSpans = false
+  prevStyle: TextStyleDeclaration,
+  thisStyle: TextStyleDeclaration,
+  forTextSpans = false,
 ) =>
   prevStyle.fill !== thisStyle.fill ||
   prevStyle.stroke !== thisStyle.stroke ||
@@ -30,28 +41,32 @@ export const hasStyleChanged = (
  * Returns the array form of a text object's inline styles property with styles grouped in ranges
  * rather than per character. This format is less verbose, and is better suited for storage
  * so it is used in serialization (not during runtime).
- * @memberOf fabric.util
  * @param {object} styles per character styles for a text object
  * @param {String} text the text string that the styles are applied to
  * @return {{start: number, end: number, style: object}[]}
  */
-export const stylesToArray = (styles: any, text: string) => {
+export const stylesToArray = (
+  styles: TextStyle,
+  text: string,
+): TextStyleArray => {
   const textLines = text.split('\n'),
     stylesArray = [];
   let charIndex = -1,
     prevStyle = {};
   // clone style structure to prevent mutation
-  styles = clone(styles, true);
+  styles = cloneStyles(styles);
 
   //loop through each textLine
   for (let i = 0; i < textLines.length; i++) {
+    const chars = graphemeSplit(textLines[i]);
     if (!styles[i]) {
-      //no styles exist for this line, so add the line's length to the charIndex total
-      charIndex += textLines[i].length;
+      //no styles exist for this line, so add the line's length to the charIndex total and reset prevStyle
+      charIndex += chars.length;
+      prevStyle = {};
       continue;
     }
     //loop through each character of the current line
-    for (let c = 0; c < textLines[i].length; c++) {
+    for (let c = 0; c < chars.length; c++) {
       charIndex++;
       const thisStyle = styles[i][c];
       //check if style exists for this character
@@ -77,23 +92,28 @@ export const stylesToArray = (styles: any, text: string) => {
  * Returns the object form of the styles property with styles that are assigned per
  * character rather than grouped by range. This format is more verbose, and is
  * only used during runtime (not for serialization/storage)
- * @memberOf fabric.util
  * @param {Array} styles the serialized form of a text object's styles
  * @param {String} text the text string that the styles are applied to
  * @return {Object}
  */
-export const stylesFromArray = (styles: any, text: string) => {
+export const stylesFromArray = (
+  styles: TextStyleArray | TextStyle,
+  text: string,
+): TextStyle => {
   if (!Array.isArray(styles)) {
-    return styles;
+    // clone to prevent mutation
+    return cloneStyles(styles);
   }
-  const textLines = text.split('\n'),
-    stylesObject = {} as any;
+  const textLines = text.split(reNewline),
+    stylesObject: TextStyle = {};
   let charIndex = -1,
     styleIndex = 0;
   //loop through each textLine
   for (let i = 0; i < textLines.length; i++) {
+    const chars = graphemeSplit(textLines[i]);
+
     //loop through each character of the current line
-    for (let c = 0; c < textLines[i].length; c++) {
+    for (let c = 0; c < chars.length; c++) {
       charIndex++;
       //check if there's a style collection that includes the current character
       if (

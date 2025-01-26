@@ -1,10 +1,8 @@
 // https://www.typescriptlang.org/docs/handbook/utility-types.html
-import type { Control } from './controls/control.class';
-import type { Gradient } from './gradient/gradient.class';
-import type { Pattern } from './pattern.class';
-import type { Point } from './point.class';
-import type { FabricObject } from './shapes/fabricObject.class';
-import type { saveObjectTransform } from './util/misc/objectTransforms';
+import type { Gradient } from './gradient/Gradient';
+import type { Pattern } from './Pattern';
+import type { XY, Point } from './Point';
+import type { FabricObject as BaseFabricObject } from './shapes/Object/Object';
 
 interface NominalTag<T> {
   nominalTag?: T;
@@ -12,11 +10,14 @@ interface NominalTag<T> {
 
 type Nominal<Type, Tag> = NominalTag<Tag> & Type;
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 type TNonFunctionPropertyNames<T> = {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   [K in keyof T]: T[K] extends Function ? never : K;
 }[keyof T];
 export type TClassProperties<T> = Pick<T, TNonFunctionPropertyNames<T>>;
+
+// https://github.com/microsoft/TypeScript/issues/32080
+export type Constructor<T = object> = new (...args: any[]) => T;
 
 const enum Degree {}
 const enum Radian {}
@@ -42,99 +43,28 @@ export type TBBox = {
 
 export type Percent = `${number}%`;
 
-export const enum StrokeLineJoin {
-  miter = 'miter',
-  bevel = 'bevel',
-  round = 'round',
-}
+export type ImageFormat = 'jpeg' | 'png';
 
-export const enum ImageFormat {
-  jpeg = 'jpeg',
-  jpg = 'jpeg',
-  png = 'png',
-}
+export type SVGElementName = 'linearGradient' | 'radialGradient' | 'stop';
 
-export const enum SVGElementName {
-  linearGradient = 'linearGradient',
-  radialGradient = 'radialGradient',
-  stop = 'stop',
-}
-
-export const enum SupportedSVGUnit {
-  mm = 'mm',
-  cm = 'cm',
-  in = 'in',
-  pt = 'pt',
-  pc = 'pc',
-  em = 'em',
-}
-
-export type TMat2D = [number, number, number, number, number, number];
-
-export type ModifierKey = 'altKey' | 'shiftKey' | 'ctrlKey';
+export type SupportedSVGUnit = 'mm' | 'cm' | 'in' | 'pt' | 'pc' | 'em';
 
 /**
- * SVG path commands
+ * A transform matrix.
+ * Basically a matrix in the form
+ * [ a c e ]
+ * [ b d f ]
+ * [ 0 0 1 ]
+ * For more details, see @link https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#matrix
  */
-export type PathData = (string | number)[][];
-
-export type TPointerEvent = MouseEvent | TouchEvent;
-
-export type TransformAction<T extends Transform = Transform, R = void> = (
-  eventData: TPointerEvent,
-  transform: T,
-  x: number,
-  y: number
-) => R;
-
-export type TransformActionHandler<T extends Transform = Transform> =
-  TransformAction<T, boolean>;
-
-export type ControlCallback<R = void> = (
-  eventData: TPointerEvent,
-  control: Control,
-  fabricObject: FabricObject
-) => R;
-
-export type ControlCursorCallback = ControlCallback<string>;
-
-/**
- * relative to target's containing coordinate plane
- * both agree on every point
- */
-export type Transform = {
-  target: FabricObject;
-  action: string;
-  actionHandler: TransformActionHandler;
-  corner: string;
-  scaleX: number;
-  scaleY: number;
-  skewX: number;
-  skewY: number;
-  offsetX: number;
-  offsetY: number;
-  originX: TOriginX;
-  originY: TOriginY;
-  ex: number;
-  ey: number;
-  lastX: number;
-  lastY: number;
-  theta: TRadian;
-  width: number;
-  height: number;
-  shiftKey: boolean;
-  altKey: boolean;
-  original: ReturnType<typeof saveObjectTransform>;
-};
-
-export type TEvent<E extends Event = TPointerEvent> = {
-  e: E;
-};
-
-export type TransformEvent = TEvent & {
-  transform: Transform;
-  pointer: Point;
-};
+export type TMat2D = [
+  a: number,
+  b: number,
+  c: number,
+  d: number,
+  e: number,
+  f: number,
+];
 
 /**
  * An invalid keyword and an empty string will be handled as the `anonymous` keyword.
@@ -151,3 +81,46 @@ export type TCornerPoint = {
   bl: Point;
   br: Point;
 };
+
+export type TSVGReviver = (markup: string) => string;
+
+export type TValidToObjectMethod = 'toDatalessObject' | 'toObject';
+
+export type TCacheCanvasDimensions = {
+  width: number;
+  height: number;
+  zoomX: number;
+  zoomY: number;
+  x: number;
+  y: number;
+};
+
+export type TRectBounds = [min: XY, max: XY];
+
+export type TToCanvasElementOptions<
+  T extends BaseFabricObject = BaseFabricObject,
+> = {
+  left?: number;
+  top?: number;
+  width?: number;
+  height?: number;
+  filter?: (object: T) => boolean;
+};
+
+export type TDataUrlOptions<T extends BaseFabricObject = BaseFabricObject> =
+  TToCanvasElementOptions<T> & {
+    multiplier: number;
+    format?: ImageFormat;
+    quality?: number;
+    enableRetinaScaling?: boolean;
+  };
+
+export type Abortable = {
+  /**
+   * handle aborting
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/AbortController/signal
+   */
+  signal?: AbortSignal;
+};
+
+export type TOptions<T> = Partial<T> & Record<string, any>;
