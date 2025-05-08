@@ -2,6 +2,18 @@
 
 ## [next]
 
+- ci(): Add firefox vitest to ci [#10586](https://github.com/fabricjs/fabric.js/pull/10586)
+- feat(tests): add firefox to vitest browser tests [#10571](https://github.com/fabricjs/fabric.js/pull/10571)
+- refactor(tests): move to data url tests from qunit to playwright [#10581](https://github.com/fabricjs/fabric.js/pull/10581)
+- chore(TS): remove @ts-nocheck in straighten.ts [#10572](https://github.com/fabricjs/fabric.js/pull/10572)
+- refactor(tests): move svg export visual tests to playwright [#10575](https://github.com/fabricjs/fabric.js/pull/10575)
+- ci(): Modify test run action [#10570](https://github.com/fabricjs/fabric.js/pull/10570)
+- Chore() more qunit post cleanup [#10569](https://github.com/fabricjs/fabric.js/pull/10569)
+- feat(tests): add chromium browser mode for unit tests [#10568](https://github.com/fabricjs/fabric.js/pull/10568)
+- chore(): update playwright [#10564](https://github.com/fabricjs/fabric.js/pull/10564)
+- chore(): update vitest [#10565](https://github.com/fabricjs/fabric.js/pull/10565)
+- chore(tests): Remove old unit test harness [#10567](https://github.com/fabricjs/fabric.js/pull/10567)
+- refactor(tests): move canvas events tests from qunit to vitest [#10563](https://github.com/fabricjs/fabric.js/pull/10563)
 - refactor(tests): migrate object clip path tests to vitest [#10561](https://github.com/fabricjs/fabric.js/pull/10561)
 - refactor(tests): migrate webgl tests to vitest [#10560](https://github.com/fabricjs/fabric.js/pull/10560)
 - refactor(tests): migrate itext click behavior tests from qunit to vitest [#10559](https://github.com/fabricjs/fabric.js/pull/10559)
