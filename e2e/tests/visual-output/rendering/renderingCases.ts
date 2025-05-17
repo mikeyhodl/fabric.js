@@ -2,31 +2,20 @@
  * Runs from both the browser and node
  */
 
-import type { Canvas } from 'fabric';
 import { selectedTextWithClipPath } from './testcases/textWithClipPath';
-export type renderTestType = {
-  size: [number, number];
-  percentage: number;
-  title: string;
-  golden: string;
-  disabled?: 'node' | 'browser';
-  renderFunction: (
-    canvas: Canvas,
-    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-    fabric: typeof import('fabric'),
-  ) => Promise<void>;
-};
+import { renderTestType } from '../../types';
+import { zSvgExport } from './testcases/z-svg-export';
+import { dataURLExports } from './testcases/to-data-url';
+import { textPathTests } from './testcases/text-path';
+import { controlsRenderingTests } from './testcases/controls-rendering';
+import { clipPathRenderingTests } from './testcases/clip-path';
 
 const emptyTest: renderTestType = {
   size: [450, 220],
   percentage: 0.05,
   title: '',
   golden: '*.png',
-  renderFunction: async function render(
-    canvas: Canvas,
-    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-    fabric: typeof import('fabric'),
-  ) {
+  renderFunction: async function render(canvas, fabric) {
     // put render code here
   },
 };
@@ -37,11 +26,7 @@ export const renderTests: renderTestType[] = [
     percentage: 0.05,
     title: 'polygon boundingbox with skew',
     golden: 'polygonbboxWithSkew.png',
-    renderFunction: async function render(
-      canvas: Canvas,
-      // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-      fabric: typeof import('fabric'),
-    ) {
+    renderFunction: async function render(canvas, fabric) {
       const pts = () => [
         {
           x: 300,
@@ -76,11 +61,7 @@ export const renderTests: renderTestType[] = [
     size: [150, 60],
     title: 'Rect with strokeUniform true',
     golden: 'generic1.png',
-    renderFunction: async function render(
-      canvas: Canvas,
-      // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-      fabric: typeof import('fabric'),
-    ) {
+    renderFunction: async function render(canvas, fabric) {
       const rect = new fabric.Rect({
         width: 20,
         height: 40,
@@ -113,11 +94,7 @@ export const renderTests: renderTestType[] = [
     golden: 'strokeNegativeScale.png',
     title: 'Rect with strokeUniform: true and negative scaling',
     disabled: 'node',
-    renderFunction: async function render(
-      canvas: Canvas,
-      // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-      fabric: typeof import('fabric'),
-    ) {
+    renderFunction: async function render(canvas, fabric) {
       const rect = new fabric.Rect({
         width: 10,
         height: 10,
@@ -154,11 +131,7 @@ export const renderTests: renderTestType[] = [
     percentage: 0.09,
     title: 'Rect DropShadow with nonScaling: true',
     golden: 'shadownonscaling.png',
-    renderFunction: async function render(
-      canvas: Canvas,
-      // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-      fabric: typeof import('fabric'),
-    ) {
+    renderFunction: async function render(canvas, fabric) {
       const obj = new fabric.Rect();
       obj.set({
         width: 10,
@@ -187,11 +160,7 @@ export const renderTests: renderTestType[] = [
     percentage: 0.09,
     golden: 'polygonWithStroke.png',
     title: 'polygon position independently from strokeWidth and origin',
-    renderFunction: async function render(
-      canvas: Canvas,
-      // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-      fabric: typeof import('fabric'),
-    ) {
+    renderFunction: async function render(canvas, fabric) {
       canvas.set({ backgroundColor: '#AAAA77' });
       const p1 = new fabric.Polygon(
         [
@@ -233,11 +202,7 @@ export const renderTests: renderTestType[] = [
     percentage: 0.01,
     title: 'pixelate filter',
     golden: 'pixelate-filter.png',
-    renderFunction: async function render(
-      canvas: Canvas,
-      // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-      fabric: typeof import('fabric'),
-    ) {
+    renderFunction: async function render(canvas, fabric) {
       const imgSource = fabric.getFabricDocument().createElement('canvas');
       imgSource.width = 450;
       imgSource.height = 220;
@@ -257,6 +222,11 @@ export const renderTests: renderTestType[] = [
     },
   },
   selectedTextWithClipPath,
+  ...zSvgExport,
+  ...dataURLExports,
+  ...textPathTests,
+  ...controlsRenderingTests,
+  ...clipPathRenderingTests,
 ];
 
 // function polygonWithStroke(canvas, callback) {
