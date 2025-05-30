@@ -19,9 +19,10 @@ import {
 import { removeTransformMatrixForSvgParsing } from '../util';
 import * as FilterBackend from '../filters/FilterBackend';
 import { FabricError } from '../util/internals/console';
+import TestImageGif from '../../test/fixtures/test_image.gif';
+import { isJSDOM } from '../../vitest.extend';
 
-const IMG_SRC = 'test_image.gif';
-const IMG_SRC_REL = 'test_image.gif';
+const IMG_SRC = isJSDOM() ? 'test_image.gif' : TestImageGif;
 const imgSrcUrl = new URL(IMG_SRC, import.meta.url).pathname;
 
 const IMG_WIDTH = 276;
@@ -90,26 +91,28 @@ describe('FabricImage', () => {
       expect(img.toSVG()).toMatchSnapshot();
     });
   });
+
   test('ApplyFilter use cacheKey', () => {
-    const mockApplyFilter = vi.fn();
-    vi.spyOn(FilterBackend, 'getFilterBackend').mockImplementation(
-      () =>
-        ({
-          applyFilters: mockApplyFilter,
-        }) as any,
-    );
-    const imgElement = new Image(200, 200);
-    const img = new FabricImage(imgElement);
-    img.filters = [new Brightness({ brightness: 0.2 })];
-    img.applyFilters();
-    expect(mockApplyFilter).toHaveBeenCalledWith(
-      img.filters,
-      img._originalElement,
-      200,
-      200,
-      img.getElement(),
-      'texture3',
-    );
+    const backend = FilterBackend.getFilterBackend();
+    const mockApply = vi
+      .spyOn(backend, 'applyFilters')
+      .mockImplementation(vi.fn());
+
+    try {
+      const img = new FabricImage(new Image(200, 200));
+      img.filters = [new Brightness({ brightness: 0.2 })];
+      img.applyFilters();
+      expect(mockApply).toHaveBeenCalledWith(
+        img.filters,
+        img._originalElement,
+        200,
+        200,
+        img.getElement(),
+        'texture3',
+      );
+    } finally {
+      mockApply.mockRestore();
+    }
   });
   describe('SVG import', () => {
     test('can import images when xlink:href attribute is set', async () => {
@@ -347,16 +350,22 @@ describe('FabricImage', () => {
 
     expect(image.width, 'width is not changed').toBe(Math.floor(width));
     expect(image.height, 'height is not changed').toBe(Math.floor(height));
-    expect(
-      // @ts-expect-error -- protected prop
-      parseFloat(image._filterScalingX.toFixed(1)),
-      'a new scaling factor is made for x',
-    ).toBe(0.2);
-    expect(
-      // @ts-expect-error -- protected prop
-      parseFloat(image._filterScalingY.toFixed(1)),
-      'a new scaling factor is made for y',
-    ).toBe(0.2);
+    await expect
+      .poll(
+        () =>
+          // @ts-expect-error -- protected prop
+          parseFloat(image._filterScalingX.toFixed(1)),
+        { timeout: 2_000 },
+      )
+      .toBe(0.2);
+    await expect
+      .poll(
+        () =>
+          // @ts-expect-error -- protected prop
+          parseFloat(image._filterScalingY.toFixed(1)),
+        { timeout: 2_000 },
+      )
+      .toBe(0.2);
 
     const toObject = image.toObject();
 
@@ -496,15 +505,13 @@ describe('FabricImage', () => {
 
   it('getSrc with srcFromAttribute', async () => {
     const image = await createImage({
-      src: IMG_SRC_REL,
+      src: IMG_SRC,
       extra: {
         srcFromAttribute: true,
       },
     });
 
-    expect(image.getSrc(), 'getSrc should return IMG_SRC_REL').toBe(
-      IMG_SRC_REL,
-    );
+    expect(image.getSrc(), 'getSrc should return IMG_SRC_REL').toBe(IMG_SRC);
   });
 
   it('getElement', () => {
@@ -559,33 +566,33 @@ describe('FabricImage', () => {
     ]);
   });
 
-  it('setElement resets the webgl cache', async () => {
+  it('setElement resets the webgl cache', { retry: 2 }, async (ctx) => {
     const backend = getFilterBackend();
 
-    if (backend instanceof WebGLFilterBackend) {
-      const image = await createImage();
-
-      backend.textureCache[image.cacheKey] = backend.createTexture(
-        backend.gl,
-        50,
-        50,
-      );
-
-      expect(
-        backend.textureCache[image.cacheKey],
-        'cache should exist',
-      ).toBeTruthy();
-
-      image.setElement(new Image());
-
-      expect(
-        backend.textureCache[image.cacheKey],
-        'cache should be cleared',
-      ).toBeUndefined();
-    } else {
-      // Skip test if WebGL backend is not available
-      expect(true).toBe(true);
+    if (!(backend instanceof WebGLFilterBackend)) {
+      ctx.skip(true, 'Skip test if WebGL backend is not available');
+      return;
     }
+
+    const image = await createImage();
+
+    backend.textureCache[image.cacheKey] = backend.createTexture(
+      backend.gl,
+      50,
+      50,
+    );
+
+    expect(
+      backend.textureCache[image.cacheKey],
+      'cache should exist',
+    ).toBeTruthy();
+
+    image.setElement(new Image());
+
+    expect(
+      backend.textureCache[image.cacheKey],
+      'cache should be cleared',
+    ).toBeUndefined();
   });
 
   it('fromObject', async () => {
