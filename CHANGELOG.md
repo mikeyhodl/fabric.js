@@ -1,5 +1,9 @@
 # Changelog
 
+## [next]
+
+- chore(deps-dev): bump js-yaml from 3.14.1 to 3.14.2 [#104](https://github.com/fabricjs/fabric.js/pull/104)
+
 ## [7.0.0]
 
 - fix(): Fix toDataUrl writing on contextTop [#10820](https://github.com/fabricjs/fabric.js/pull/10820)
