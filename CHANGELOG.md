@@ -2,6 +2,8 @@
 
 ## [next]
 
+- chore(): address some sonar reported issues [#10981](https://github.com/fabricjs/fabric.js/pull/10981)
+
 ## [7.4.0]
 
 - feat(): Support viewport rotation in getZoom, dimensions, and control coords [#10977](https://github.com/fabricjs/fabric.js/pull/10977)
