@@ -1,5 +1,6 @@
 import path from 'path';
 import { redBright } from './scripts/colors.mjs';
+import { buildableWorkspacePackages } from './scripts/workspace-packages.mjs';
 
 const splitter = /\n|\s|,/g;
 
@@ -33,6 +34,23 @@ function onwarn(warning, warn) {
     }
   }
   warn(warning);
+}
+
+function workspacePackageBuildConfig({ directory, bundle }) {
+  return {
+    input: [`./packages/${directory}/src/index.ts`],
+    external: bundle.external,
+    tsconfig: './tsconfig.packages.json',
+    ...(bundle.transform ? { transform } : {}),
+    output: [
+      {
+        file: path.resolve(`./packages/${directory}/dist/index.mjs`),
+        format: 'es',
+        sourcemap: true,
+      },
+    ],
+    onwarn,
+  };
 }
 
 // https://rolldown.rs/guide/getting-started
@@ -125,11 +143,13 @@ export default [
     onwarn,
     external: ['jsdom', 'jsdom/lib/jsdom/living/generated/utils.js', 'canvas'],
   },
+  // WORKSPACE PACKAGES
+  ...buildableWorkspacePackages.map(workspacePackageBuildConfig),
   // EXTENSIONS
 
   {
     input: ['./extensions/index.ts'],
-    external: ['fabric', 'westures'],
+    external: ['fabric', '@fabricjs/core', 'westures'],
     tsconfig: './tsconfig-extensions.json',
     transform,
     output: [
@@ -138,8 +158,12 @@ export default [
         dir: path.resolve('./dist-extensions'),
         format: 'es',
         preserveModules: true,
+        preserveModulesRoot: 'extensions',
         entryFileNames: '[name].mjs',
         sourcemap: true,
+        paths: {
+          '@fabricjs/core': 'fabric',
+        },
       },
       // umd module, the cdn one for fiddles, minified
       {
@@ -149,7 +173,11 @@ export default [
         sourcemap: true,
         globals: {
           fabric: 'fabric',
+          '@fabricjs/core': 'fabric',
           westures: 'westures',
+        },
+        paths: {
+          '@fabricjs/core': 'fabric',
         },
         minify: true,
       },

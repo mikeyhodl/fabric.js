@@ -16,6 +16,7 @@ const pool = nodeMajor <= 20 ? 'vmThreads' : 'threads';
 export default defineConfig({
   resolve: {
     alias: {
+      '@fabricjs/core': resolve(__dirname, './fabric.ts'),
       fabric: resolve(__dirname, './fabric.ts'),
     },
   },
@@ -85,6 +86,8 @@ export default defineConfig({
       'src/**/*.spec.{ts,tsx}',
       'extensions/**/*.spec.{ts,tsx}',
       'extensions/**/*.test.{ts,tsx}',
+      'packages/*/src/**/*.spec.{ts,tsx}',
+      'packages/*/src/**/*.test.{ts,tsx}',
     ],
     coverage: {
       reportsDirectory: '.nyc_output',
@@ -105,7 +108,7 @@ export default defineConfig({
         '**/node_modules/**',
         '.codesandbox/**',
         'lib/**',
-        'e2e/**',
+        'packages/e2e/**',
         'scripts/**',
         'publish-next.js',
         'publish.js',

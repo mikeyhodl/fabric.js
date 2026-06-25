@@ -7,7 +7,6 @@ change-output.md
 before_commit
 /coverage/
 .idea/
-e2e/dist/
 /dist-extensions/*
 !/dist-extensions/fabric-extensions.min.*
 !/dist-extensions/**/*.ts
@@ -20,9 +19,11 @@ e2e/dist/
 !/dist/index.min.js.map
 !/dist/index.min.mjs
 !/dist/index.min.mjs.map
+/packages/*/node_modules/
+/packages/*/dist/
 /cli_output/
-e2e/test-report/
-e2e/test-results/
+/packages/e2e/test-report/
+/packages/e2e/test-results/
 **/.cache/
 docs/
 __screenshots__
