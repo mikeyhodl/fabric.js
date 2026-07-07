@@ -5,8 +5,10 @@ import {
   StaticCanvas as StaticCanvasBase,
   setEnv,
 } from '@fabricjs/core';
-import { getEnv, getNodeCanvas } from '../../../src/env/node';
+import { getEnv, getNodeCanvas } from './env';
 
+// Node owns its runtime env and can eagerly install the JSDOM/canvas-backed
+// implementation at import time.
 setEnv(getEnv());
 
 FabricObjectBase.ownDefaults.objectCaching = false;
