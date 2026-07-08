@@ -51,6 +51,9 @@ export const getFabricWindow = (): TFabricWindow => getEnv().window;
  * @returns the config value if defined, fallbacks to the environment value
  */
 export const getDevicePixelRatio = () =>
-  Math.max(config.devicePixelRatio ?? getFabricWindow().devicePixelRatio, 1);
+  Math.max(
+    config.devicePixelRatio ?? getFabricWindow().devicePixelRatio ?? 1,
+    1,
+  );
 
 export type * from './types';
